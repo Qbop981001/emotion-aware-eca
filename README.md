@@ -7,7 +7,7 @@ checkpoints will be stored in "checkpoint_emotion"
 
 then run predict_emotion.py to predict emotion results and lexicon-revised emotion results, results will be stored in "predictions" 
 
-We have provided the predicted emotion results by our model, you can directly use it.  
+OR you can directly use the predicted emotion results by our model we provided in the same directory.  
 
 To train and evaluate the cause extraction model based on qa/untyped/typed_markers 
 
