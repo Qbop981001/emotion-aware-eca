@@ -21,5 +21,5 @@ Requirements:\
 pytorch\
 transformers\
 numpy\
-sklean\
+sklearn\
 pandas
