@@ -8,11 +8,10 @@ from sklearn.metrics import precision_recall_fscore_support
 
 from transformers import BertForQuestionAnswering, AdamW
 from transformers import get_linear_schedule_with_warmup
-from data_processing_qa import build_dataloader
-
+from data_processing_typed_marker import build_dataloader
 EPOCH = 10
-result_dir = 'qa_evaluation'
-ckpt_dir = 'checkpoint_qa'
+result_dir = 'typed_evaluation'
+ckpt_dir = 'checkpoint_typed_marker'
 if not os.path.exists(ckpt_dir):
     os.mkdir(ckpt_dir)
     print(f"{ckpt_dir} established")
@@ -42,13 +41,10 @@ def catched_metric(preds_start, preds_end, truths_start, truths_end):
             r = catched_length / (truths_end[i] - truths_start[i] + 1)
         ps.append(p)
         rs.append(r)
-    # print(ps[:5], rs[:5])
     return torch.tensor(ps).sum() / len(ps), torch.tensor(rs).sum() / len(rs)
 
 
 def find_cause(ratios,absolute_lengths):
-    # print(ratios)
-    # print(absolute_lengths)
     if len([index for index in range(len(ratios)) if ratios[index] > 0.9]) > 1:
         result = [index for index in range(len(ratios)) if ratios[index] > 0.9]
     else:
@@ -103,55 +99,7 @@ def ece_metric(truths_start, truths_end, preds_start, preds_end,clauses_position
     f1 = 2 * p * r / (p + r + 1e-8)
     return (p,r,f1)
 
-
-def real_metric(model, real_valid_loader, num_of_pairs_all, device):
-    preds_start, preds_end, clauses_positions, docs_pairs, pred_sentiments_ids = [], [], [], [], []
-    with torch.no_grad():
-        for batch in real_valid_loader:
-            # print(f"batch in real:\n{batch}")
-
-            input_ids = batch['input_ids'].to(device)
-            attention_mask = batch['attention_mask'].to(device)
-            batch['input_ids'] = list(batch['input_ids'])
-            doc_pairs = batch['doc_pairs']
-            pred_sentiments_id = batch['senti_ids']
-            clause_position = batch['clauses_positions']
-            pred = model(input_ids, attention_mask=attention_mask)
-            pred_start = torch.argmax(pred[0], dim=1).detach().cpu().numpy().tolist()
-            pred_end = torch.argmax(pred[1], dim=1).detach().cpu().numpy().tolist()
-            # exit(0)
-            # if type(clause_position) != type([]):
-            #     # print(type(truth_start))
-            #     clause_position = [clause_position]
-            preds_start.extend(pred_start)
-            preds_end.extend(pred_end)
-            clauses_positions.extend(clause_position)
-            docs_pairs.extend(doc_pairs)
-            pred_sentiments_ids.extend(pred_sentiments_id)
-
-        selected_causes = select(preds_start, preds_end, clauses_positions)
-        # 这个是从0开始的index,为每一个预测出来的emotion clause 所预测的selected causes
-        # selected_causes = [i+1 for i in selected_causes]
-        selected_causes = [[i + 1 for i in selected_cause] for selected_cause in selected_causes] # 多原因时使用
-        selected_pairs = list(zip(pred_sentiments_ids,selected_causes))
-        # print(selected_pairs)
-        catched = 0
-        for selected_pair,doc_pairs in zip(selected_pairs, docs_pairs):
-            # print(selected_pair,doc_pairs)
-            for c in selected_pair[1]:
-
-                if [selected_pair[0],  c] in doc_pairs:
-                    catched += 1
-        print(catched, len(selected_pairs), num_of_pairs_all,len(docs_pairs))
-        # exit(0)
-        p = catched / len(selected_pairs)
-        r = catched / num_of_pairs_all
-        f1 = 2 * p * r / (p + r + 1e-8)
-
-    return p,r,f1
-
-
-def evaluate(model, data_loader, real_valid_loader, device):
+def evaluate(model, data_loader,  device):
     model.eval()
     preds_start, preds_end, truths_start, truths_end, clauses_positions = [], [], [], [], []
     with torch.no_grad():
@@ -160,6 +108,7 @@ def evaluate(model, data_loader, real_valid_loader, device):
             attention_mask = batch['attention_mask'].to(device)
             batch['input_ids'] = list(batch['input_ids'])
             pred = model(input_ids, attention_mask=attention_mask)
+
             pred_start = torch.argmax(pred[0], dim=1).detach().cpu().numpy().tolist()
             pred_end = torch.argmax(pred[1], dim=1).detach().cpu().numpy().tolist()
             truth_start = batch['start_positions'].squeeze().cpu().numpy().tolist()
@@ -177,10 +126,9 @@ def evaluate(model, data_loader, real_valid_loader, device):
 
     return catched_metric(preds_start, preds_end, truths_start, truths_end), \
            ece_metric(truths_start, truths_end, preds_start, preds_end,clauses_positions), \
-           real_metric(model, real_valid_loader, len(truths_start), device)
 
 
-def main(fold_id,train_loader,valid_loader,real_valid_loader):
+def main(fold_id,train_loader,valid_loader):
     model = BertForQuestionAnswering.from_pretrained("bert-base-chinese")
     model.to(device)
 
@@ -193,11 +141,9 @@ def main(fold_id,train_loader,valid_loader,real_valid_loader):
     )
     model.train()
     qa_metrics, eces = [], []
-    reals = []
     out_strs = []
-    best_real, best_ece, best_qa = 0.0, 0.0,0.0
-    # metric= evaluate(model, valid_loader, real_valid_loader, device)
-    # print(metric)
+    best_ece, best_qa = 0.0, 0.0
+
     for epoch in range(EPOCH):
         epoch_start = time.time()
         print(f"epoch {epoch} starts.")
@@ -215,86 +161,59 @@ def main(fold_id,train_loader,valid_loader,real_valid_loader):
             lr_scheduler.step()
 
         # print("start evaluation")
-        metric= evaluate(model, valid_loader, real_valid_loader,device)
+        metric= evaluate(model, valid_loader,device)
         epoch_time = (time.time() - epoch_start)
         p = metric[0][0]; r = metric[0][1] ; f1 = 2*p*r/(p+r+1e-8)
         ece = metric[1]
-        real_metric = metric[2]
-        out_str = f" EPOCH {epoch} qa_metric: {p},{r},{f1}  ece = {ece}  real_ecpe: {real_metric} epoch_time: {epoch_time}s"
+
+        out_str = f"EPOCH{epoch} qa metric : p = {p}, r = {r}, f1 = {f1}  ece = {ece}    epoch_time: {epoch_time}s"
         print(out_str)
         out_strs.append(out_str)
         qa_metrics.append((p,r,f1))
-        reals.append(real_metric)
         eces.append(ece)
-        if real_metric[2] >= best_real or (real_metric[2] == best_real and ece[2] > best_ece):
-            print("saving model")
-            torch.save(model.state_dict(), os.path.join(ckpt_dir, f"fold{fold_id}_best.pth"))
-            best_real = real_metric[2]
-            real_epoch = epoch
+
         if ece[2] > best_ece:
             best_ece = ece[2]
             ece_epoch = epoch
+            print("saving model")
+            torch.save(model.state_dict(), os.path.join(ckpt_dir, f"fold{fold_id}_best.pth"))
         if f1 > best_qa:
             best_qa = f1
             qa_epoch = epoch
         model.train()
 
-    with open(os.path.join(result_dir,'fold'+str(fold_id)+'qa_based_model_results.txt'),'w') as f:
+    with open(os.path.join(result_dir,'fold'+str(fold_id)+'typed_result.txt'),'w') as f:
         for i in out_strs:
             f.write(i+'\n')
-    return qa_metrics[qa_epoch], qa_epoch, eces[ece_epoch], ece_epoch, reals[real_epoch], real_epoch
-
-
-def predict(fold_id,valid_loader,real_valid_loader):
-    model = BertForQuestionAnswering.from_pretrained("bert-base-chinese")
-    model.to(device)
-    model.load_state_dict(torch.load(f"checkpoint_qa/fold{fold_id}_best.pth"))
-    metric = evaluate(model, valid_loader, real_valid_loader, device)
-    p = metric[0][0]
-    r = metric[0][1]
-    f1 = 2 * p * r / (p + r + 1e-8)
-    acc = metric[1]
-    real_metric = metric[2]
-    out_str = f"qa_metric: {p},{r},{f1}  ece = {acc}   ecpe_real: {real_metric} "
-    print(out_str)
-    return p,r,f1,acc[0],acc[1],acc[2],real_metric[0],real_metric[1],real_metric[2]
+    return qa_metrics[qa_epoch], qa_epoch, eces[ece_epoch], ece_epoch
 
 
 if __name__ == '__main__':
     n_folds = 10
     fold_f1s = []
     fold_accs = []
-    fold_reals = []
+
     metrics = []
     for fold_id in range(1, n_folds+1):
         start = time.time()
         print('===== fold {} ====='.format(fold_id))
-        train_loader = build_dataloader(fold_id, 'train', 'sentiment','truth')
-        valid_loader = build_dataloader(fold_id, 'test', 'sentiment','truth')
-        real_valid_loader = build_dataloader(fold_id, 'test', 'sentiment','predict')
-        metric_ece = main(fold_id,train_loader,valid_loader,real_valid_loader)
-        best_str = f"fold{fold_id} best qa: {metric_ece[0]}, in epoch {metric_ece[1]}; best ece: {metric_ece[2]}, in epoch {metric_ece[3]}, real_ecpe_f1_best: {metric_ece[4]} n epoch {metric_ece[5]}"
+        train_loader = build_dataloader(fold_id, 'train', 'emotion','truth')
+        valid_loader = build_dataloader(fold_id, 'test', 'emotion','truth')
+        metric_ece = main(fold_id,train_loader,valid_loader)
+        best_str = f"fold {fold_id} best qa_metric: {metric_ece[0]}, in epoch {metric_ece[1]}; best ece: {metric_ece[2]}, in epoch {metric_ece[3]}"
         print(best_str)
-        with open(os.path.join(result_dir,'fold'+str(fold_id)+'qa_based_model_results.txt'), 'a') as f:
+        with open(os.path.join(result_dir,'fold'+str(fold_id)+'typed_result.txt'), 'a') as f:
             f.write(best_str+'\n')
         fold_time = time.time() - start
 
-        print(f'Cost {fold_time}s.')
+        print('Cost {}s.'.format(fold_time))
         fold_f1s.append(metric_ece[0])
         fold_accs.append(metric_ece[2])
-        fold_reals.append(metric_ece[4])
-        # predict
-        # metric_ece = predict(fold_id,valid_loader,real_valid_loader)
-        # metrics.append(metric_ece)
 
     print('===== Average =====')
     average_f1 = np.array(fold_f1s).mean(axis=0)
     average_acc = np.array(fold_accs).mean(axis=0)
-    average_real = np.array(fold_reals).mean(axis=0)
-    print(f"average_qa_f1: {average_f1}, average_ece: {average_acc}, average_real_ecpe: {average_real}")
-    with open(os.path.join(result_dir,'fold'+str(fold_id)+'qa_based_model_results.txt'), 'a') as f:
-        f.write(f"average_qa_f1: {average_f1}, average_ece: {average_acc}, average_real_ecpe: {average_real}")
 
-    # predict
-    # average = np.array(metrics).mean(axis=0)
-    # print(average)
+    print(f"average_qa_metric: {average_f1}, average_ece: {average_acc}")
+    with open(os.path.join(result_dir,'fold'+str(fold_id)+'typed_result.txt'), 'a') as f:
+        f.write(f"average_qa_metric: {average_f1}, average_ece: {average_acc}")

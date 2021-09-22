@@ -120,8 +120,6 @@ def read_from_json_pred(fold_id):
         # if len(doc['pairs']) < 2:
         #     continue
         doc_preds = [i+1 for i in range(doc['doc_len']) if doc_preds[i] == 1 ] # index从1开始
-        # print(doc_preds)
-        # print(doc['pairs'])
         clauses = []
         for clause in doc['clauses']:
             clauses.append(clause['clause'])
@@ -248,7 +246,18 @@ def build_dataloader(fold_id, data_type, label_type, senti_type):
     tokenizer = BertTokenizer.from_pretrained('bert-base-chinese')
     if senti_type != 'predict':
         passages, sentiments, causes, causes_ids = read_from_json(fold_id, data_type)
-        encodings = tokenizer(passages, sentiments, truncation=True, padding=True)
+
+        # encodings = tokenizer(passages, sentiments, truncation=True, padding=True)
+        # Ablation studies: removing sentiments
+        temp = []
+        for p,s in zip(passages,sentiments):
+            pos = p.find(s)
+            if pos == -1:
+                print("Error")
+            temp.append(p[:pos]+"开始"+s+"结束"+p[pos+len(s):])
+        passages = temp
+        encodings = tokenizer(passages, truncation=True, padding=True)
+
         causes = add_end_idx(causes, causes_ids, encodings, passages)
         add_encoding_positions(encodings, causes, passages)
         dataset = ECEDataset(encodings)
@@ -266,7 +275,14 @@ def build_dataloader(fold_id, data_type, label_type, senti_type):
     else:
         pred_docs, pred_sentiments_text, doc_pairs, pred_sentiments_ids = read_from_json_pred(fold_id)
         print([len(i) for i in [pred_docs, pred_sentiments_text, doc_pairs, pred_sentiments_ids]])
-        encodings = tokenizer(pred_docs, pred_sentiments_text, truncation=True, padding=True)
+        temp = []
+        for p,s in zip(pred_docs, pred_sentiments_text):
+            pos = p.find(s)
+            if pos == -1:
+                print("Error")
+            temp.append(p[:pos]+"开始"+s+"结束"+p[pos+len(s):])
+        pred_docs = temp
+        encodings = tokenizer(pred_docs,  truncation=True, padding=True)
         # add_positions(encodings, pred_docs, doc_pairs, pred_sentiments_ids)
         dataset = ECEDataset_pred(encodings,pred_docs, doc_pairs, pred_sentiments_ids)
         # print(f"dataset:\n{dataset[0]}")
@@ -316,7 +332,7 @@ def add_encoding_positions(encodings, causes, passages):
                       'clauses_positions':clauses_positions})
 
 
-def batch_preprocessing(batch):  # 因为clause_position不一样长 所以要进行pad操作
+def batch_preprocessing(batch):  #因为clause_position不一样长 所以要进行pad操作
     new_batch = {}
     for key in batch[0].keys():
         if key != 'clauses_positions':
@@ -327,7 +343,6 @@ def batch_preprocessing(batch):  # 因为clause_position不一样长 所以要�
     clause_position = pad_sequence(clause_position, batch_first=True, padding_value=-1)
     new_batch['clauses_positions'] = clause_position
     return new_batch
-
 
 def b(batch):
     # print([item for item in batch])

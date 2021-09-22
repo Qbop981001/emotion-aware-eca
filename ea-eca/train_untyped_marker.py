@@ -8,11 +8,10 @@ from sklearn.metrics import precision_recall_fscore_support
 
 from transformers import BertForQuestionAnswering, AdamW
 from transformers import get_linear_schedule_with_warmup
-from data_processing_qa import build_dataloader
-
-EPOCH = 10
-result_dir = 'qa_evaluation'
-ckpt_dir = 'checkpoint_qa'
+from data_processing_untyped_marker import build_dataloader
+EPOCH = 2
+result_dir = 'untyped_evaluation'
+ckpt_dir = 'checkpoint_untyped_marker'
 if not os.path.exists(ckpt_dir):
     os.mkdir(ckpt_dir)
     print(f"{ckpt_dir} established")
@@ -173,7 +172,6 @@ def evaluate(model, data_loader, real_valid_loader, device):
             truths_start.extend(truth_start)
             truths_end.extend(truth_end)
             clauses_positions.extend(clause_position)
-    # print(preds_start[:5], truths_start[:5], preds_end[:5], truth_end[:5])
 
     return catched_metric(preds_start, preds_end, truths_start, truths_end), \
            ece_metric(truths_start, truths_end, preds_start, preds_end,clauses_positions), \
@@ -220,7 +218,7 @@ def main(fold_id,train_loader,valid_loader,real_valid_loader):
         p = metric[0][0]; r = metric[0][1] ; f1 = 2*p*r/(p+r+1e-8)
         ece = metric[1]
         real_metric = metric[2]
-        out_str = f" EPOCH {epoch} qa_metric: {p},{r},{f1}  ece = {ece}  real_ecpe: {real_metric} epoch_time: {epoch_time}s"
+        out_str = f"Epoch {epoch} qa metric: p = {p}, r = {r}, f1 = {f1}  ece = {ece}   real_ecpe: {real_metric} epoch_time: {epoch_time}s"
         print(out_str)
         out_strs.append(out_str)
         qa_metrics.append((p,r,f1))
@@ -239,7 +237,7 @@ def main(fold_id,train_loader,valid_loader,real_valid_loader):
             qa_epoch = epoch
         model.train()
 
-    with open(os.path.join(result_dir,'fold'+str(fold_id)+'qa_based_model_results.txt'),'w') as f:
+    with open(os.path.join(result_dir,'fold'+str(fold_id)+'untyped_result.txt'),'w') as f:
         for i in out_strs:
             f.write(i+'\n')
     return qa_metrics[qa_epoch], qa_epoch, eces[ece_epoch], ece_epoch, reals[real_epoch], real_epoch
@@ -248,14 +246,14 @@ def main(fold_id,train_loader,valid_loader,real_valid_loader):
 def predict(fold_id,valid_loader,real_valid_loader):
     model = BertForQuestionAnswering.from_pretrained("bert-base-chinese")
     model.to(device)
-    model.load_state_dict(torch.load(f"checkpoint_qa/fold{fold_id}_best.pth"))
+    model.load_state_dict(torch.load(f"{ckpt_dir}/fold{fold_id}_best.pth"))
     metric = evaluate(model, valid_loader, real_valid_loader, device)
     p = metric[0][0]
     r = metric[0][1]
-    f1 = 2 * p * r / (p + r + 1e-8)
+    f1 = 2 * p * r / (p + r +1e-8)
     acc = metric[1]
     real_metric = metric[2]
-    out_str = f"qa_metric: {p},{r},{f1}  ece = {acc}   ecpe_real: {real_metric} "
+    out_str = f"p = {p}, r = {r}, f1 = {f1}  acc = {acc}   real: {real_metric} "
     print(out_str)
     return p,r,f1,acc[0],acc[1],acc[2],real_metric[0],real_metric[1],real_metric[2]
 
@@ -266,20 +264,21 @@ if __name__ == '__main__':
     fold_accs = []
     fold_reals = []
     metrics = []
-    for fold_id in range(1, n_folds+1):
+    for fold_id in range(1, 2):
         start = time.time()
         print('===== fold {} ====='.format(fold_id))
         train_loader = build_dataloader(fold_id, 'train', 'sentiment','truth')
         valid_loader = build_dataloader(fold_id, 'test', 'sentiment','truth')
         real_valid_loader = build_dataloader(fold_id, 'test', 'sentiment','predict')
         metric_ece = main(fold_id,train_loader,valid_loader,real_valid_loader)
-        best_str = f"fold{fold_id} best qa: {metric_ece[0]}, in epoch {metric_ece[1]}; best ece: {metric_ece[2]}, in epoch {metric_ece[3]}, real_ecpe_f1_best: {metric_ece[4]} n epoch {metric_ece[5]}"
+        best_str = f"fold {fold_id} best qa_metric: {metric_ece[0]}, in epoch {metric_ece[1]}; \
+                best ece: {metric_ece[2]}, in epoch {metric_ece[3]}, real_ecpe_f1_best: {metric_ece[4]} n epoch {metric_ece[5]}"
         print(best_str)
-        with open(os.path.join(result_dir,'fold'+str(fold_id)+'qa_based_model_results.txt'), 'a') as f:
+        with open(os.path.join(result_dir,'fold'+str(fold_id)+'untyped_result.txt'), 'a') as f:
             f.write(best_str+'\n')
         fold_time = time.time() - start
 
-        print(f'Cost {fold_time}s.')
+        print('Cost {}s.'.format(fold_time))
         fold_f1s.append(metric_ece[0])
         fold_accs.append(metric_ece[2])
         fold_reals.append(metric_ece[4])
@@ -291,9 +290,9 @@ if __name__ == '__main__':
     average_f1 = np.array(fold_f1s).mean(axis=0)
     average_acc = np.array(fold_accs).mean(axis=0)
     average_real = np.array(fold_reals).mean(axis=0)
-    print(f"average_qa_f1: {average_f1}, average_ece: {average_acc}, average_real_ecpe: {average_real}")
-    with open(os.path.join(result_dir,'fold'+str(fold_id)+'qa_based_model_results.txt'), 'a') as f:
-        f.write(f"average_qa_f1: {average_f1}, average_ece: {average_acc}, average_real_ecpe: {average_real}")
+    print(f"average_qa_metric: {average_f1}, average_ece: {average_acc}, average_ecpe: {average_real}")
+    with open(os.path.join(result_dir,'fold'+str(fold_id)+'untyped_result.txt'), 'a') as f:
+        f.write(f"average_f1: {average_f1}, average_ece: {average_acc}, average_ecpe: {average_real}")
 
     # predict
     # average = np.array(metrics).mean(axis=0)
