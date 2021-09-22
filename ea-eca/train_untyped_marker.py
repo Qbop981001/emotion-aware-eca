@@ -9,7 +9,7 @@ from sklearn.metrics import precision_recall_fscore_support
 from transformers import BertForQuestionAnswering, AdamW
 from transformers import get_linear_schedule_with_warmup
 from data_processing_untyped_marker import build_dataloader
-EPOCH = 2
+EPOCH = 10
 result_dir = 'untyped_evaluation'
 ckpt_dir = 'checkpoint_untyped_marker'
 if not os.path.exists(ckpt_dir):
@@ -264,7 +264,7 @@ if __name__ == '__main__':
     fold_accs = []
     fold_reals = []
     metrics = []
-    for fold_id in range(1, 2):
+    for fold_id in range(1, n_folds+1):
         start = time.time()
         print('===== fold {} ====='.format(fold_id))
         train_loader = build_dataloader(fold_id, 'train', 'sentiment','truth')
