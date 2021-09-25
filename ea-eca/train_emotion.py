@@ -44,7 +44,7 @@ def main(fold_id, train_loader, valid_loader):
     torch.cuda.manual_seed_all(TORCH_SEED)
     torch.backends.cudnn.deterministic = True
 
-    model = BertForSequenceClassification.from_pretrained("bert-base-chinese", num_labels=7)
+    model = BertForSequenceClassification.from_pretrained("bert-base-chinese", num_labels=2)
     model.to(device)
     model.train()
 
