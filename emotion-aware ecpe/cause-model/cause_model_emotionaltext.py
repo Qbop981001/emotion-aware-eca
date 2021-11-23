@@ -3,7 +3,6 @@ import numpy
 import time
 from torch import nn
 from torch.nn.utils.rnn import pad_sequence
-from data_processing_typedmarker import tokenizer
 from transformers import BertModel
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
@@ -23,7 +22,6 @@ class ECEmodel(nn.Module):  # 两种输出方式 两种loss
     def __init__(self):
         super(ECEmodel,self).__init__()
         self.bert = BertModel.from_pretrained("bert-base-chinese")
-        self.bert.resize_token_embeddings(len(tokenizer))
         self.pooler = Pooler(1536)
         self.dropout = nn.Dropout(0.2)
         self.layer_norm = nn.LayerNorm(1536)
@@ -91,4 +89,6 @@ class ECEmodel(nn.Module):  # 两种输出方式 两种loss
 
         pad_sequence(c_h,batch_first=True)
         return pad_sequence(c_h,batch_first=True)
+
+
 
