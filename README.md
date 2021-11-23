@@ -10,7 +10,7 @@ In directory ```emotion-aware ecpe``` , there are five folders.
 
 - In directory ```emotion-model``` ,  run
 
-  ```python train_emotion.py``` for training and saving model checkpoints
+  ```python train_emotion.py``` for training and evaluating the emotion model
 
   ```python predict_emotion.py```  for predicting and storing the emotion clauses for each fold 
 
@@ -24,7 +24,9 @@ In directory ```emotion-aware ecpe``` , there are five folders.
 
 - In directory ```cause-model``` ,  run
 
-```python train_emotionaltext.py``` for training and saving model checkpoints
+  ```python train_emotionaltext.py``` or   ```python train_untypedmarker.py``` or ```python train_typedmarker.py``` for training and evaluating the cause model with different emotion-fusing strategies **EmotionalText** **UntypedMarker** **TypedMarker** respectively. 
+  
+  For training on the reconstructed dataset, change the variable  ```DATASET_TYPE``` to 'reconstructed'in ```data_processing_emotionaltext.py``` or ```data_processing_untypedmarker.py```. When evaluating on the reconstructed dataset, results on multiple emotion-cause pair extraction will also be printed, and in ```train_typedmarker.py```, we report the upper bound of ECPE.
 
 
 
