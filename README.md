@@ -20,7 +20,7 @@ In directory ```emotion-aware ecpe``` , there are six folders.
 
   By default, predicted emotion clauses will be stored in ```predictions_original```  or ```predictions_reconstructed``` for the two datasets respectively.
 
-  We have also offered the predicted emotion clause for the two datasets, stored in ```predictions_original```  and ```predictions_reconstructed``` , if you don't want to generate the emotion clauses by runnning emotion-model yourself, you can use them directly
+  On the other hand, we have also provided the predicted emotion clause for the two datasets by our emotion model, stored in ```predictions_original```  and ```predictions_reconstructed``` , if you don't want to generate the emotion clauses by runnning emotion-model yourself, you can use them directly.
 
 - In directory ```cause-model``` ,  run
 
