@@ -2,7 +2,7 @@
 
 This repository show the source code for the submitted paper "Learning Emotion-Aware Contextual Representations for Emotion-Cause Pair Extraction"
 
-In directory ```emotion-aware ecpe``` , there are five folders.
+In directory ```emotion-aware ecpe``` , there are six folders.
 
 ```ECPE-original``` and ```ECPE-reconstructed```  are our datasets. ```ECPE-original``` is the original ECPE benchmark dataset, used by all previous ECPE works,  ```ECPE-reconstructed``` is our reconstructed dataset. We build this  dataset by manually checking all documents and merge those that are from the same original news article.
 
