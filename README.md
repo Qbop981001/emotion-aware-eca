@@ -8,7 +8,7 @@ In directory ```emotion-aware ecpe``` , there are five folders.
 
 ```emotion-model``` and ```cause-model```  are source code of our approach. 
 
-In ```emotion-model``` ,  run
+- In directory ```emotion-model``` ,  run
 
 ```python train_emotion.py``` for training and saving model checkpoints
 
@@ -16,9 +16,17 @@ In ```emotion-model``` ,  run
 
 You can change the variable
 
-```DATASET_TYPE``` (set to 'original' by default) in ```data_processing_emotion.py```  to select the dataset you want to run experiments on,
+```DATASET_TYPE``` in ```data_processing_emotion.py``` (set to 'original' by default) to select the dataset you want to run experiments on,
 
-By default, predicted emotion clauses will be stored in ```../predictions_original```  or ```../predictions_reconstructed``` for the two datasets respectively
+By default, predicted emotion clauses will be stored in ```predictions_original```  or ```predictions_reconstructed``` for the two datasets respectively.
+
+We have also offered the predicted emotion clause for the two datasets, stored in ```predictions_original```  and ```predictions_reconstructed``` 
+
+if you don't want to generate the emotion clauses by runnning emotion-model yourself, you can use them directly
+
+- In directory ```cause-model``` ,  run
+
+```python train_emotionaltext.py``` for training and saving model checkpoints
 
 
 
