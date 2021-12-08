@@ -31,7 +31,7 @@ In directory ```emotion-aware ecpe``` , there are six folders.
 
 ## Implementation for another data split
 
-In addition to the 10-fold cross-validation data split employed by most previous methods (following https://github.com/Determined22/Rank-Emotion-Cause ). There is another data split based on randomly sampling train/validation/test sets with 8:1:1 proportion 20 times (following https://github.com/HLT-HITSZ/TransECPE). We also conduct experiments and report comparative results on this data split in our paper. The code is located in  ```emotion-aware-ecpe-split20```, and the implementation procedure is the same as mentioned above.
+In addition to the 10-fold cross-validation data split employed by most previous methods (following https://github.com/Determined22/Rank-Emotion-Cause ), there is another data split based on randomly sampling train/validation/test sets with 8:1:1 proportion 20 times (following https://github.com/HLT-HITSZ/TransECPE). We also conduct experiments and report comparative results on this data split in our paper. The code is located in  ```emotion-aware-ecpe-split20```, and the implementation procedure is the same as mentioned above.
 
 
 
