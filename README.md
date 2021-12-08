@@ -1,4 +1,5 @@
 # emotion-aware-ecpe
+## Implementation Details
 
 This repository show the source code for the submitted paper "Learning Emotion-Aware Contextual Representations for Emotion-Cause Pair Extraction"
 
@@ -28,7 +29,9 @@ In directory ```emotion-aware ecpe``` , there are six folders.
   
   For training on the reconstructed dataset, change the variable  ```DATASET_TYPE``` to 'reconstructed' in ```data_processing_emotionaltext.py``` or ```data_processing_untypedmarker.py```. When evaluating on the reconstructed dataset, results on multiple emotion-cause pair extraction will also be printed, and in ```train_typedmarker.py```, we report the upper bound of ECPE.
 
+## Implementation for another data split
 
+In addition to the 10-fold cross-validation data split employed by most previous methods (following https://github.com/Determined22/Rank-Emotion-Cause ). There is another data split based on randomly sampling train/validation/test sets with 8:1:1 proportion 20 times (following https://github.com/HLT-HITSZ/TransECPE). We also conduct experiments and report comparative results on this data split in our paper. The code is located in  ```emotion-aware-ecpe-split20```, and the implementation procedure is the same as mentioned above.
 
 
 
