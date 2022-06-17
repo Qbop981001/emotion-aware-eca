@@ -35,11 +35,7 @@ In addition to the 10-fold cross-validation data split employed by most previous
 
 We also conduct experiments and report comparative results on this data split in our paper. The code is located in  ```emotion-aware-ecpe-split20```, and the implementation procedure is the same as mentioned above.
 
-## Multi-label learning scheme in the previous version
 
-In our previous version, we employed a different model architecture. Actually, we also tried to implement a multi-label learning scheme in previous experiments while the results were not satisfying, thus, we reported the negative results in the appendix of our previous version. 
-
-However, we found that the unsatisfying results were due to **wrong code implementation** of the multi-label learning scheme (we passed wrong parameter to function `BertModel.from_pretrained()`, leading to the fact we did not download the right bert model). After we modified the code, we found that the results have become reasonable as reported in the current version.  
 
 
 
